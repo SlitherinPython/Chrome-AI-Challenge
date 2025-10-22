@@ -1,24 +1,35 @@
-console.log("Background: Service worker started/restarted."); // Log startup
+console.log("Background: Service worker started/restarted.");
 
-// URL for your Firebase function (ensure this is correct)
-const EXTERNAL_DATA_FUNCTION_URL =
-	"https://us-central1-uni-helper-hackathon.cloudfunctions.net/getExternalData";
+// URLs for your Firebase functions
+const EXTERNAL_DATA_FUNCTION_URL = "https://us-central1-uni-helper-hackathon.cloudfunctions.net/getExternalData";
+const FIND_UNIVERSITIES_FUNCTION_URL = "https://finduniversities-anctizd3ja-uc.a.run.app"; 
 
-// Main message listener - Handles messages from popup.js
+// Main message listener
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-	console.log("Background: Received message:", request); // Log incoming message
+	console.log("Background: Received message:", request);
 	if (request.type === "SUMMARIZE_PAGE") {
-		// This single button now triggers the full analysis
-		handleFullAnalysis(sendResponse);
-		return true; // Keep message channel open for async response
+		// Acknowledge immediately
+		sendResponse({ status: "processing_started" });
+		// Start the analysis but don't pass sendResponse
+		handleFullAnalysis();
+		return false; // Indicate synchronous (or no further) response needed for this message channel
+	} else if (request.type === "FIND_UNIVERSITIES") {
+		// Acknowledge immediately
+		sendResponse({ status: "processing_started" });
+		// Start the university search but don't pass sendResponse
+		handleFindUniversitiesRequest(request.course, request.location); // Pass course and location
+		return false; // Indicate synchronous (or no further) response needed
 	}
+	// Optional: Handle unknown message types
+	// else {
+	//    console.warn("Background: Received unhandled message type:", request.type);
+	//    sendResponse({ success: false, data: "Unhandled message type" });
+	//    return false;
+	// }
 });
 
-// --- Helper Functions ---
-
-/**
- * Checks AI model availability. Throws error if unavailable/downloading.
- */
+// --- Helper Functions (checkAiAvailability, getPageContentFromActiveTab, generateAiText, fetchExternalLinks, saveAndOpenResults) ---
+// ... These helper functions remain the same as before ...
 async function checkAiAvailability() {
 	console.log("Background (Helper): Checking AI Availability...");
 	if (
@@ -206,16 +217,10 @@ async function saveAndOpenResults(results) {
 /**
  * Orchestrates the full analysis process: page summary, link fetching, tips generation.
  */
-async function handleFullAnalysis(sendResponse) {
+// --- Main Handler for Page Analysis ---
+async function handleFullAnalysis() { // REMOVED sendResponse parameter
 	console.log("Background (Main): Starting full analysis...");
-	// Initialize object to hold final data for storage
-	let finalResults = {
-		pageSummary: null,
-		scholarshipLinks: [],
-		reviewLinks: [],
-		locationLinks: [],
-		generatedAppTips: null, // Changed from appTipsLinks
-	};
+	let finalResults = { /* ... initialize ... */ };
 	let preferences = null;
 	let pageData = null;
 
@@ -223,109 +228,131 @@ async function handleFullAnalysis(sendResponse) {
 		// 1. Check AI Availability
 		await checkAiAvailability();
 
-		// 2. Fetch User Preferences
+		// 2. Fetch User Preferences (for analysis toggles AND user values)
 		console.log("Background (Main): Fetching user preferences...");
-		const storedPrefs = await chrome.storage.sync.get({
-			prefs: {
-				// Default values
-				scholarships: true,
-				reviews: true,
-				location: false,
-				appTips: false,
-				sociable: 5,
-				nature: 5,
-				study: 5,
-			},
-		});
+		const storedPrefs = await chrome.storage.sync.get({ prefs: { /* ... defaults ... */ } });
 		preferences = storedPrefs.prefs;
 		console.log("Background (Main): Retrieved preferences:", preferences);
 
 		// 3. Get Current Page Content
 		pageData = await getPageContentFromActiveTab();
 
-		// 4. Generate AI Summary of Current Page
-		finalResults.pageSummary = await generateAiText(
-			pageData.content,
-			"page summary"
-		);
+        // 4. Generate AI Summary of Current Page (with preferences)
+        const pageSummaryPrompt = `Generate a concise, single-paragraph summary... Keep in mind the user describes themselves as Sociable: ${preferences.sociable}/10, Nature Lover: ${preferences.nature}/10, and Study Focused: ${preferences.study}/10; subtly highlight aspects relevant to these traits if prominent in the text:\n\n${pageData.content}`;
+        finalResults.pageSummary = await generateAiText(pageSummaryPrompt, "page summary");
 
 		// 5. Fetch External Links (if needed)
-		const needsExternalData =
-			preferences.scholarships ||
-			preferences.reviews ||
-			preferences.location ||
-			preferences.appTips;
-		let fetchedLinks = {
-			scholarshipLinks: [],
-			reviewLinks: [],
-			locationLinks: [],
-			appTipsLinks: [],
-		}; // Default empty links
-
-		if (needsExternalData) {
-			// Extract uniName from URL
-			const url = new URL(pageData.url);
-			let uniName = url.hostname
-				.replace(/^(www\.|ww2\.)/i, "")
-				.split(".")
-				.slice(0, -1)
-				.join(".");
-			// Basic cleaning
-			uniName = uniName.replace(/\.(com|org|net|info|biz)$/i, "");
-			uniName = uniName.replace(/\.(edu|ac)\.[a-z]{2}$/i, "");
-			uniName = uniName.replace(/\.(edu|ac)$/i, "");
-			uniName = uniName
-				.split(/[\s-]+/)
-				.map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-				.join(" ");
-			console.log(`Background (Main): Using uniName: ${uniName}`);
-
-			// Call Firebase function to get links
-			fetchedLinks = await fetchExternalLinks(uniName, preferences);
-
-			// Store the fetched links directly in finalResults
-			finalResults.scholarshipLinks = fetchedLinks.scholarshipLinks;
-			finalResults.reviewLinks = fetchedLinks.reviewLinks;
-			finalResults.locationLinks = fetchedLinks.locationLinks;
-			// Note: We don't store appTipsLinks directly anymore, we generate tips instead.
-		} else {
-			console.log(
-				"Background (Main): Skipping external link fetch based on preferences."
-			);
+        // ... (Keep existing logic: check needsExternalData, extract uniName, call fetchExternalLinks) ...
+		const needsExternalData = preferences.scholarships || preferences.reviews || preferences.location || preferences.appTips;
+        let fetchedLinks = { /* ... default empty ... */ };
+        if (needsExternalData) {
+            const url = new URL(pageData.url);
+            let uniName = url.hostname.replace(/^(www\.|ww2\.)/i, '').split('.').slice(0, -1).join('.');
+			uniName = uniName.replace(/\.(com|org|net|info|biz)$/i, ''); // etc. cleaning...
+			uniName = uniName.split(/[\s-]+/).map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+            fetchedLinks = await fetchExternalLinks(uniName, preferences);
+            finalResults.scholarshipLinks = fetchedLinks.scholarshipLinks;
+            finalResults.reviewLinks = fetchedLinks.reviewLinks;
+            finalResults.locationLinks = fetchedLinks.locationLinks;
+        } else {
+		    console.log("Background (Main): Skipping external link fetch...");
 		}
 
-		// 6. Generate Application Tips using AI (based on page summary)
-		// Only generate if the preference is on OR if links were found (optional refinement)
-		if (preferences.appTips) {
-			// Check preference
-			const tipsPrompt = `Based on the following summary of a university program page, generate a few helpful application tips or key admission points a prospective student should consider. Be concise and use bullet points if appropriate:\n\n${finalResults.pageSummary}`;
-			finalResults.generatedAppTips = await generateAiText(
-				tipsPrompt,
-				"application tips"
-			);
-		} else {
-			console.log(
-				"Background (Main): Skipping application tip generation based on preferences."
-			);
-			finalResults.generatedAppTips =
-				"[Application tip generation disabled in preferences.]";
-		}
+        // 6. Generate Application Tips using AI (with preferences and context)
+        if (preferences.appTips) {
+             let tipsContext = `Page Summary:\n${finalResults.pageSummary}\n\n`;
+             if (fetchedLinks.appTipsLinks && fetchedLinks.appTipsLinks.length > 0) { /* ... add link titles ... */ }
+             const tipsPrompt = `Based on the summary... generate helpful application tips... Tailor the advice slightly considering the student rates themselves as Sociable: ${preferences.sociable}/10, Nature Lover: ${preferences.nature}/10, and Study Focused: ${preferences.study}/10... Use bullet points.\n\nContext:\n${tipsContext}`;
+             finalResults.generatedAppTips = await generateAiText(tipsPrompt, "application tips");
+        } else {
+             console.log("Background (Main): Skipping application tip generation...");
+             finalResults.generatedAppTips = "[Application tip generation disabled in preferences.]";
+        }
 
-		// 7. Save all generated/fetched results and open the results tab
-		await saveAndOpenResults(finalResults);
+		// 7. Save results and open the 'results.html' tab
+		await saveAndOpenResults(finalResults); // This helper saves and opens results.html
 
-		// 8. Send success response back to popup
-		sendResponse({
-			success: true,
-			message: "Analysis complete! Check the new tab.",
-		});
+		// 8. --- REMOVED sendResponse CALL ---
 		console.log("Background (Main): Full analysis successful.");
+
 	} catch (error) {
 		console.error("Background (Main): Error during full analysis:", error);
-		// Send specific error message back to popup
-		sendResponse({
-			success: false,
-			data: error.message || "An unknown error occurred during analysis.",
-		});
+        // Save error state for results.html to display
+        await chrome.storage.local.set({ analysisError: error.message || "An unknown error occurred during analysis." });
+        // Optionally open results tab even on error
+        await chrome.tabs.create({ url: chrome.runtime.getURL("results.html"), active: true });
+		// --- REMOVED sendResponse CALL ---
 	}
 } // End handleFullAnalysis
+
+
+// --- **** NEW Handler for Finding Universities **** ---
+/**
+ * Handles the "Find Universities" button click.
+ * Calls Firebase function with course/location, saves results, opens discovery tab.
+ */
+async function handleFindUniversitiesRequest(course, location) { // Receives course/location from message
+    console.log(`Background (Discovery): Starting find universities request for "${course}" in "${location}"...`);
+
+    // Basic validation
+    if (!course || !location) {
+        console.error("Background (Discovery): Missing course or location.");
+        await chrome.storage.local.set({ discoveryError: "Course or location missing in request." });
+        await chrome.tabs.create({ url: chrome.runtime.getURL("discovery_results.html"), active: true });
+        return;
+    }
+    if (FIND_UNIVERSITIES_FUNCTION_URL.includes("YOUR_FIND_UNIVERSITIES_FUNCTION_URL")) {
+        console.error("Background (Discovery): Find Universities Function URL is not set!");
+        await chrome.storage.local.set({ discoveryError: "Server function URL not configured." });
+        await chrome.tabs.create({ url: chrome.runtime.getURL("discovery_results.html"), active: true });
+        return;
+    }
+
+    try {
+        // 1. Construct the Function URL
+        const params = new URLSearchParams({ course: course, location: location });
+        const functionUrlWithParams = `${FIND_UNIVERSITIES_FUNCTION_URL}?${params.toString()}`;
+        console.log("Background (Discovery): Calling Firebase function:", functionUrlWithParams);
+
+        // 2. Call the Firebase function
+        const response = await fetch(functionUrlWithParams);
+        if (!response.ok) {
+            let errorText = `Firebase function failed: ${response.status}`;
+            try { errorText = await response.text(); } catch (_) {}
+            throw new Error(`Failed to fetch university list: ${errorText}`);
+        }
+
+        // 3. Parse the JSON response (expecting { universities: [...] })
+        let universityData;
+         try {
+            universityData = await response.json();
+            if (!universityData || !Array.isArray(universityData.universities)) {
+                 throw new Error("Invalid data format received from server (expected { universities: [...] }).");
+            }
+        } catch (jsonError) {
+            console.error("Background (Discovery): Failed to parse JSON response:", jsonError);
+            throw new Error("Received invalid data format from the server.");
+        }
+        console.log(`Background (Discovery): Received ${universityData.universities.length} university links.`);
+
+        // 4. Save the list of universities to storage
+        console.log("Background (Discovery): Saving university list to storage...");
+        await chrome.storage.local.set({ foundUniversities: universityData.universities }); // Key: foundUniversities
+        console.log("Background (Discovery): University list saved.");
+
+        // 5. Open the new discovery results tab
+        console.log("Background (Discovery): Opening discovery_results.html tab...");
+        await chrome.tabs.create({ url: chrome.runtime.getURL("discovery_results.html"), active: true }); // New HTML page
+        console.log("Background (Discovery): Discovery results tab opened.");
+
+        // No sendResponse needed here due to fire-and-forget
+
+    } catch (error) {
+        console.error("Background (Discovery): Error during find universities request:", error);
+        // Save error state for discovery_results.html to display
+        await chrome.storage.local.set({ discoveryError: error.message || "An unknown error occurred finding universities." });
+        // Optionally open discovery tab even on error
+        await chrome.tabs.create({ url: chrome.runtime.getURL("discovery_results.html"), active: true });
+        // No sendResponse needed here
+    }
+} // End handleFindUniversitiesRequest

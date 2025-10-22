@@ -1,37 +1,38 @@
 <!doctype html>
 <html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>University Analysis Results</title>
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/results.css" rel="stylesheet">
+  </head>
+  <body>
 
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>University Analysis Results</title>
-        <link href="css/bootstrap.min.css" rel="stylesheet">
-        <link href="css/results.css" rel="stylesheet">
-    </head>
+    <div class="container-fluid results-container">
 
-    <body>
+      <h4 class="mb-3 mt-2">Page Summary</h4>
+      <div id="loading-pageSummary" class="text-muted">Loading page summary...</div>
+      <div id="pageSummary-content" class="result-section"></div>
 
-        <div class="container-fluid results-container">
-
-            <h4 class="mb-3 mt-2">Page Summary</h4>
-            <div id="loading-pageSummary" class="text-muted">Loading page summary...</div>
-            <div id="pageSummary-content" class="result-section"></div>
-
-            <h4 class="mb-3 mt-4">Scholarship Links</h4>
-            <div id="loading-scholarshipLinks" class="text-muted">Loading scholarship links...</div>
-            <ul id="scholarshipLinks-content" class="list-group mb-4"></ul>
-            <h4 class="mb-3 mt-4">Student Review Links</h4>
-            <div id="loading-reviewLinks" class="text-muted">Loading review links...</div>
-            <ul id="reviewLinks-content" class="list-group mb-4"></ul>
-            <h4 class="mb-3 mt-4">Location Information Links</h4>
-            <div id="loading-locationLinks" class="text-muted">Loading location links...</div>
-            <ul id="locationLinks-content" class="list-group mb-4"></ul>
-            <h4 class="mb-3 mt-4">Generated Application Tips</h4>
-            <div id="loading-generatedAppTips" class="text-muted">Loading application tips...</div>
-            <div id="generatedAppTips-content" class="result-section"></div>
-
-        </div>
-        <script src="results.js"></script>
-    </body>
-
+      <h4 class="mb-3 mt-4">Scholarship Links</h4>
+      <div id="loading-scholarshipLinks" class="text-muted">Loading scholarship links...</div>
+      <ul id="scholarshipLinks-content" class="list-group mb-2"></ul> <small class="text-muted d-block mb-4">
+        Disclaimer: These links were found via automated search. Please verify the accuracy and source of information on the linked pages.
+      </small>
+      <h4 class="mb-3 mt-4">Student Review Links</h4>
+      <div id="loading-reviewLinks" class="text-muted">Loading review links...</div>
+      <ul id="reviewLinks-content" class="list-group mb-2"></ul> <small class="text-muted d-block mb-4">
+        Disclaimer: These links were found via automated search (including forums like Reddit). Please critically evaluate opinions and verify information.
+      </small>
+      <h4 class="mb-3 mt-4">Location Information Links</h4>
+      <div id="loading-locationLinks" class="text-muted">Loading location links...</div>
+      <ul id="locationLinks-content" class="list-group mb-2"></ul> <small class="text-muted d-block mb-4">
+        Disclaimer: These links were found via automated search. Please verify the relevance and accuracy of the location information provided.
+      </small>
+      <h4 class="mb-3 mt-4">Generated Application Tips</h4>
+      <div id="loading-generatedAppTips" class="text-muted">Loading application tips...</div>
+      <div id="generatedAppTips-content" class="result-section"></div>
+      </div> <script src="results.js"></script>
+  </body>
 </html>

@@ -2,10 +2,9 @@
 <html lang="en">
 
     <head>
-        <meta charset="utf-t">
+        <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>Extension Preferences</title>
-
         <link href="css/bootstrap.min.css" rel="stylesheet">
         <link href="css/options.css" rel="stylesheet">
     </head>
@@ -14,11 +13,24 @@
 
         <div class="container">
             <h2>Preferences</h2>
-            <p class="lead">Choose what the extension should look for.</p>
 
             <hr class="my-4">
 
-            <h4 class="mb-3">Research Features</h4>
+            <h4 class="mb-3">University Discovery</h4>
+            <div class="mb-3">
+                <label for="desired-course" class="form-label">Desired Course/Major:</label>
+                <input type="text" class="form-control" id="desired-course" placeholder="e.g., Computer Science, Psychology">
+            </div>
+            <div class="mb-3">
+                <label for="target-location" class="form-label">Target Location:</label>
+                <input type="text" class="form-control" id="target-location" placeholder="e.g., Australia, UK, California">
+                 <div class="form-text">Enter a country, state, or region.</div>
+            </div>
+
+            <hr class="my-4">
+
+            <h4 class="mb-3">External Research Features (for Analysis)</h4>
+            <p class="text-muted">Choose which external info to fetch when analyzing a specific university page.</p>
             <div class="form-check form-switch mb-2">
                 <input class="form-check-input" type="checkbox" role="switch" id="find-scholarships">
                 <label class="form-check-label" for="find-scholarships">Search for scholarships</label>
@@ -29,44 +41,38 @@
             </div>
             <div class="form-check form-switch mb-2">
                 <input class="form-check-input" type="checkbox" role="switch" id="research-location">
-                <label class="form-check-label" for="research-location">Research university location (e.g., city life,
-                    nature)</label>
+                <label class="form-check-label" for="research-location">Research university location</label>
             </div>
             <div class="form-check form-switch mb-2">
                 <input class="form-check-input" type="checkbox" role="switch" id="find-app-tips">
-                <label class="form-check-label" for="find-app-tips">Get application process tips</label>
+                <label class="form-check-label" for="find-app-tips">Generate application tips (uses AI)</label>
             </div>
 
             <hr class="my-4">
-
             <h4 class="mb-3">Your Personal Profile</h4>
-            <p>Rate yourself so we can find a good university "fit" for you.</p>
+            <p>Rate yourself so we can potentially tailor recommendations.</p>
 
-            <label for="rate-sociable" class="form-label">How sociable are you? (Looking for a "party" or "social"
-                school?)</label>
+            <label for="rate-sociable" class="form-label">How sociable are you?</label>
             <input type="range" class="form-range" min="0" max="10" step="1" id="rate-sociable">
             <div class="d-flex justify-content-between">
-                <span class="form-text">Quiet / Loner</span>
-                <span class="form-text">Very Sociable / Extrovert</span>
+                <span class="form-text">Quiet / Loner (0)</span>
+                <span class="form-text">Very Sociable / Extrovert (10)</span>
             </div>
 
-            <label for="rate-nature" class="form-label mt-3">Are you a nature person? (Want hiking, parks,
-                scenery?)</label>
+            <label for="rate-nature" class="form-label mt-3">Are you a nature person?</label>
             <input type="range" class="form-range" min="0" max="10" step="1" id="rate-nature">
             <div class="d-flex justify-content-between">
-                <span class="form-text">Indoor Person</span>
-                <span class="form-text">Love the Outdoors</span>
+                <span class="form-text">Indoor Person (0)</span>
+                <span class="form-text">Love the Outdoors (10)</span>
             </div>
 
-            <label for="rate-study" class="form-label mt-3">How study-focused are you? (Looking for a "quiet" or
-                "academic" school?)</label>
+            <label for="rate-study" class="form-label mt-3">How study-focused are you?</label>
             <input type="range" class="form-range" min="0" max="10" step="1" id="rate-study">
             <div class="d-flex justify-content-between">
-                <span class="form-text">"Work-Life Balance"</span>
-                <span class="form-text">"Grind Mode"</span>
+                <span class="form-text">Balanced (0)</span>
+                <span class="form-text">Highly Academic / Intense (10)</span>
             </div>
-
-            <hr class="my-4">
+             <hr class="my-4">
 
             <button id="save-btn" class="btn btn-primary btn-lg">Save Preferences</button>
             <span id="status-msg" class="ms-3" style="display: none;">Saved!</span>

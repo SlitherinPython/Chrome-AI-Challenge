@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>University Discovery Results</title>
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/results.css" rel="stylesheet">
+  </head>
+  <body>
+
+    <div class="container-fluid results-container"> <h4 class="mb-3 mt-2">Potential Universities Found</h4>
+
+      <div id="loading-universities" class="text-muted">Searching for universities based on your preferences...</div>
+
+      <div id="discovery-error" class="alert alert-danger" role="alert" style="display: none;">
+           </div>
+
+      <ul id="universities-list-content" class="list-group mb-4">
+        </ul>
+
+      <small class="text-muted d-block mb-4">
+          Disclaimer: These university links were found via automated search based on your criteria (course & location). Please verify the university details, specific program offerings, and admission requirements on their official websites.
+      </small>
+
+    </div> <script src="discovery_results.js"></script>
+  </body>
+</html>
