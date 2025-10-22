@@ -1,0 +1,25 @@
+{
+	"manifest_version": 3,
+	"name": "UniCourse Helper",
+	"version": "0.1",
+	"description": "An extension to summarize university courses and find reviews using built-in AI.",
+
+	"permissions": ["storage", "tabs"],
+
+	"options_page": "options.html",
+
+	"background": {
+		"service_worker": "background.js"
+	},
+
+	"action": {
+		"default_popup": "popup.html"
+	},
+
+	"content_scripts": [
+		{
+			"matches": ["https://*/*", "http://*/*"],
+			"js": ["content.js"]
+		}
+	]
+}

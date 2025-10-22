@@ -1,0 +1,4 @@
+body {
+  min-width: 300px; /* Set a nice width for your popup */
+  padding: 1rem;    /* Add some spacing around the edges */
+}

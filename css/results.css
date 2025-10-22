@@ -1,0 +1,30 @@
+body {
+  padding: 1rem;
+  word-wrap: break-word; /* Prevents long text from overflowing */
+}
+
+.results-container {
+  max-width: 900px; /* Limit width on a large screen */
+  margin: 1rem auto; /* Center the content */
+}
+
+/* Style for each result section */
+.result-section {
+    white-space: pre-wrap; /* Respect newlines from the AI/storage */
+    border: 1px solid #eee;
+    padding: 15px; /* Slightly more padding */
+    margin-bottom: 25px; /* More space between sections */
+    background-color: #f9f9f9;
+    border-radius: 4px; /* Slightly rounded corners */
+}
+
+/* Optional: Different background for personalized sections */
+#reviewSummary-content, #locationSummary-content {
+    background-color: #e8f7fa; /* Light blue background */
+    border-color: #d1ecf1;
+}
+
+h4 {
+    border-bottom: 2px solid #0d6efd; /* Add underline to headings */
+    padding-bottom: 5px;
+}
