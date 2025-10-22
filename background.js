@@ -12,7 +12,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 		handleFullAnalysis(sendResponse);
 		return true; // Keep message channel open for async response
 	}
-	// Note: We removed the separate GET_EXTERNAL_DATA handler as it's merged
 });
 
 // --- Helper Functions ---
@@ -28,18 +27,15 @@ async function checkAiAvailability() {
 	) {
 		throw new Error("Built-in AI Language Model interface is not available.");
 	}
-	// Check availability (using recommended syntax from EPP docs)
 	const availability = await LanguageModel.availability();
 	console.log(
 		"Background (Helper): LanguageModel availability status:",
 		availability
 	);
-	// Handle different states
-	if (availability === "unavailable") {
-		throw new Error("AI Model is unavailable. Check system requirements.");
-	}
-	if (availability === "downloading") {
-		throw new Error("AI Model is still downloading. Please try again.");
+	if (!["available", "readily", "downloadable"].includes(availability)) {
+		throw new Error(
+			`AI Model is currently ${availability}. Check system/flags.`
+		);
 	}
 	console.log("Background (Helper): AI Model is available or downloadable.");
 }
@@ -50,9 +46,7 @@ async function checkAiAvailability() {
  */
 async function getPageContentFromActiveTab() {
 	console.log("Background (Helper): Getting page content from active tab...");
-	// Query for the active tab in the current window
 	const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-	// Validate tab information
 	if (
 		!tab ||
 		!tab.id ||
@@ -62,11 +56,9 @@ async function getPageContentFromActiveTab() {
 		throw new Error("Could not get a valid active web page tab to scrape.");
 	}
 	console.log(`Background (Helper): Sending GET_PAGE_CONTENT to tab ${tab.id}`);
-	// Send message to content script and await response
 	const scrapeResponse = await chrome.tabs.sendMessage(tab.id, {
 		type: "GET_PAGE_CONTENT",
 	});
-	// Validate response from content script
 	if (!scrapeResponse?.success || !scrapeResponse.data) {
 		throw new Error(
 			scrapeResponse?.data || "Failed to get valid text content from the page."
@@ -75,73 +67,86 @@ async function getPageContentFromActiveTab() {
 	console.log(
 		`Background (Helper): Received ${scrapeResponse.data.length} chars from content script.`
 	);
-	return { content: scrapeResponse.data, tabId: tab.id, url: tab.url }; // Return useful info
+	return { content: scrapeResponse.data, tabId: tab.id, url: tab.url };
 }
 
 /**
- * Uses the AI model to generate a short summary of given text.
- * @param {string} textToSummarize - The text to be summarized.
- * @returns {Promise<string>} - The AI-generated summary.
+ * Uses the AI model (Prompt API) to generate text based on a prompt.
+ * Manages session creation and destruction.
+ * @param {string} promptText - The prompt to send to the AI.
+ * @param {string} taskDescription - A short description for logging (e.g., "page summary").
+ * @returns {Promise<string>} - The AI-generated text.
  */
-async function generateShortSummary(textToSummarize) {
+async function generateAiText(promptText, taskDescription) {
 	console.log(
-		`Background (Helper): Generating short summary for text (${textToSummarize.length} chars)...`
+		`Background (Helper): Generating AI text for ${taskDescription}...`
 	);
-	if (!textToSummarize || textToSummarize.trim().length < 50) {
-		// Avoid summarizing tiny texts
+	if (!promptText || promptText.trim().length === 0) {
 		console.warn(
-			"Background (Helper): Text too short, skipping summary generation."
+			`Background (Helper): Empty prompt for ${taskDescription}, skipping AI call.`
 		);
-		return "[Content too short to summarize meaningfully.]";
+		return `[No input provided for ${taskDescription}.]`;
 	}
+
 	let session = null;
 	try {
-		// Create a session specifically for this summarization task
+		console.log(
+			`Background (Helper): Creating session for ${taskDescription}...`
+		);
 		session = await LanguageModel.create({
 			expectedOutputs: [{ type: "text", languages: ["en"] }],
 		});
-		// Craft the prompt for a short paragraph summary
-		const summaryPrompt = `Generate a concise, single-paragraph summary of the main points from the following text:\n\n${textToSummarize.substring(
-			0,
-			15000
-		)}`; // Limit input size
-		const summary = await session.prompt(summaryPrompt);
-		console.log("Background (Helper): Short summary generated.");
-		return summary;
+		console.log(
+			`Background (Helper): Prompting model for ${taskDescription}...`
+		);
+		// Limit prompt size going to the model
+		const limitedPrompt = promptText.substring(0, 18000);
+		const result = await session.prompt(limitedPrompt);
+		console.log(
+			`Background (Helper): AI generation successful for ${taskDescription}.`
+		);
+		return result;
 	} catch (error) {
 		console.error(
-			"Background (Helper): Error generating short summary:",
+			`Background (Helper): Error generating AI text for ${taskDescription}:`,
 			error
 		);
-		return `[Error generating summary: ${error.message}]`; // Return error message
+		// Return specific error message if available
+		return `[Error during ${taskDescription}: ${error.message}]`;
 	} finally {
-		if (session) session.destroy(); // Clean up the session
+		if (session) {
+			console.log(
+				`Background (Helper): Destroying session for ${taskDescription}.`
+			);
+			session.destroy(); // Ensure session cleanup
+		}
 	}
 }
 
 /**
- * Calls the Firebase function to get external data based on preferences.
+ * Calls the Firebase function to get external data links.
  * @param {string} uniName - The name of the university.
  * @param {object} preferences - The user's preference object.
- * @returns {Promise<string>} - Raw text response from Firebase function.
+ * @returns {Promise<object>} - Object containing lists of links { scholarshipLinks: [], reviewLinks: [], ... }.
  */
-async function fetchExternalData(uniName, preferences) {
+async function fetchExternalLinks(uniName, preferences) {
 	console.log(
-		"Background (Helper): Fetching external data from Firebase for:",
+		"Background (Helper): Fetching external links from Firebase for:",
 		uniName
 	);
-	// Validate function URL setup
 	if (EXTERNAL_DATA_FUNCTION_URL.includes("YOUR_FIREBASE_FUNCTION_URL")) {
+		// Basic check
 		throw new Error("Server function URL not configured in background.js.");
 	}
-	// Construct query parameters based on preferences
+	// Construct query parameters
 	const params = new URLSearchParams({
 		uniName: uniName,
-		scholarships: !!preferences.scholarships, // Ensure boolean-like values
+		scholarships: !!preferences.scholarships,
 		reviews: !!preferences.reviews,
 		location: !!preferences.location,
 		appTips: !!preferences.appTips,
-		sociable: preferences.sociable || 5, // Default if undefined
+		// Pass ratings even if not used by Firebase func, in case logic changes
+		sociable: preferences.sociable || 5,
 		nature: preferences.nature || 5,
 	});
 	const functionUrlWithParams = `${EXTERNAL_DATA_FUNCTION_URL}?${params.toString()}`;
@@ -149,159 +154,67 @@ async function fetchExternalData(uniName, preferences) {
 		"Background (Helper): Calling Firebase URL:",
 		functionUrlWithParams
 	);
-	// Make the fetch request
+
 	const response = await fetch(functionUrlWithParams);
-	// Handle non-OK responses
 	if (!response.ok) {
+		// Check for HTTP errors
 		let errorText = `Firebase function failed: ${response.status}`;
 		try {
 			errorText = await response.text();
 		} catch (_) {}
-		throw new Error(`Failed to fetch external data: ${errorText}`);
+		throw new Error(`Failed to fetch external links: ${errorText}`);
 	}
-	// Return the response text
-	const externalDataText = await response.text();
-	console.log(
-		`Background (Helper): Received ${externalDataText.length} chars from Firebase.`
-	);
-	return externalDataText;
-}
-
-/**
- * Parses raw external text and summarizes/personalizes snippets using AI.
- * @param {string} rawExternalText - Text from Firebase function.
- * @param {string} uniName - University name for context.
- * @param {object} preferences - User preferences for personalization.
- * @returns {Promise<object>} - Object containing summarized text for each section.
- */
-async function processExternalSnippets(rawExternalText, uniName, preferences) {
-	console.log("Background (Helper): Processing external snippets...");
-	// Initialize result object
-	const results = {
-		scholarshipSummary: "",
-		reviewSummary: "",
-		locationSummary: "",
-		appTipsSummary: "",
-	};
-	// Split the raw text into sections based on "--- LABEL ---" format
-	const sections = rawExternalText.split(/--- ([A-Z\s]+) ---/g).slice(1);
-
-	// Process each section (label + content block)
-	for (let i = 0; i < sections.length; i += 2) {
-		const label = sections[i].trim();
-		const contentBlock = sections[i + 1];
-		// Split content block into individual snippets, clean them
-		const snippets = contentBlock
-			.split("---")
-			.map((s) => s.trim())
-			.filter((s) => s);
-
-		if (snippets.length === 0) continue; // Skip if no snippets in section
-
+	// Try to parse the response as JSON
+	try {
+		const linksData = await response.json();
 		console.log(
-			`Background (Helper): Processing ${snippets.length} snippets for ${label}...`
+			"Background (Helper): Received links data from Firebase:",
+			linksData
 		);
-		let sectionSummaries = [];
-
-		// Process each snippet within the section sequentially
-		for (const snippet of snippets) {
-			// Skip invalid snippets
-			if (
-				snippet.includes("Could not retrieve content") ||
-				snippet.length < 100 ||
-				snippet.toUpperCase().startsWith("%PDF-")
-			) {
-				console.log(
-					`Background (Helper): Skipping invalid snippet under ${label}.`
-				);
-				continue;
-			}
-
-			let session = null;
-			try {
-				// Base prompt for summarization
-				let prompt = `Provide a very brief, concise summary (1-2 key sentences) of the following text snippet concerning ${label} at ${uniName}:\n\n${snippet.substring(
-					0,
-					5000
-				)}`; // Limit snippet size in prompt
-
-				// Add personalization instructions for Reviews and Location
-				if (label === "STUDENT REVIEWS") {
-					prompt += `\n\nAlso, comment briefly on how this might relate to a student who rates themselves as Sociable: ${preferences.sociable}/10 and Study Focused: ${preferences.study}/10.`;
-				} else if (label === "LOCATION INFO") {
-					prompt += `\n\nAlso, comment briefly on how this location information might relate to a student who rates themselves as Sociable: ${preferences.sociable}/10 and Nature Lover: ${preferences.nature}/10.`;
-				}
-
-				console.log(
-					`Background (Helper): Creating session for ${label} snippet...`
-				);
-				session = await LanguageModel.create({
-					expectedOutputs: [{ type: "text", languages: ["en"] }],
-				});
-				const snippetSummary = await session.prompt(prompt.substring(0, 15000)); // Limit overall prompt size
-				sectionSummaries.push(snippetSummary);
-				console.log(`Background (Helper): Processed snippet for ${label}.`);
-			} catch (error) {
-				console.error(
-					`Background (Helper): Error processing snippet for ${label}:`,
-					error
-				);
-				sectionSummaries.push(`[Could not process snippet: ${error.message}]`);
-			} finally {
-				if (session) session.destroy(); // Ensure session cleanup
-			}
-		} // End snippet loop
-
-		// Assign combined summaries to the correct result key
-		const combinedSectionSummary = sectionSummaries.join("\n\n").trim();
-		switch (label) {
-			case "SCHOLARSHIPS":
-				results.scholarshipSummary = combinedSectionSummary;
-				break;
-			case "STUDENT REVIEWS":
-				results.reviewSummary = combinedSectionSummary;
-				break;
-			case "LOCATION INFO":
-				results.locationSummary = combinedSectionSummary;
-				break;
-			case "APPLICATION TIPS":
-				results.appTipsSummary = combinedSectionSummary;
-				break;
-		}
-	} // End section loop
-	console.log("Background (Helper): Finished processing snippets.");
-	return results;
+		// Ensure all link arrays exist, even if empty
+		return {
+			scholarshipLinks: linksData.scholarshipLinks || [],
+			reviewLinks: linksData.reviewLinks || [],
+			locationLinks: linksData.locationLinks || [],
+			appTipsLinks: linksData.appTipsLinks || [], // Make sure this key matches Firebase function's response
+		};
+	} catch (jsonError) {
+		console.error(
+			"Background (Helper): Failed to parse JSON response from Firebase:",
+			jsonError
+		);
+		throw new Error("Received invalid data format from the server.");
+	}
 }
 
 /**
  * Saves results to storage and opens the results tab.
- * @param {object} results - Object containing summary strings.
+ * @param {object} results - Object containing data for results page.
  */
 async function saveAndOpenResults(results) {
 	console.log(
 		"Background (Helper): Saving results to storage:",
 		Object.keys(results)
 	);
-	await chrome.storage.local.set(results); // Save all keys passed in the object
+	await chrome.storage.local.set(results); // Save all keys passed
 	console.log("Background (Helper): Opening results tab...");
-	await chrome.tabs.create({ url: chrome.runtime.getURL("results.html") }); // Open the results page
+	await chrome.tabs.create({ url: chrome.runtime.getURL("results.html") }); // Open results.html
 }
 
 // --- Main Handler Function (Triggered by Popup) ---
 
 /**
- * Orchestrates the full analysis process.
+ * Orchestrates the full analysis process: page summary, link fetching, tips generation.
  */
 async function handleFullAnalysis(sendResponse) {
 	console.log("Background (Main): Starting full analysis...");
+	// Initialize object to hold final data for storage
 	let finalResults = {
-		// Initialize object to hold final data for storage
 		pageSummary: null,
-		scholarshipSummary: null,
-		reviewSummary: null,
-		locationSummary: null,
-		appTipsSummary: null,
-		// We no longer need a separate 'recommendation' as personalization is in sections
+		scholarshipLinks: [],
+		reviewLinks: [],
+		locationLinks: [],
+		generatedAppTips: null, // Changed from appTipsLinks
 	};
 	let preferences = null;
 	let pageData = null;
@@ -327,25 +240,37 @@ async function handleFullAnalysis(sendResponse) {
 		preferences = storedPrefs.prefs;
 		console.log("Background (Main): Retrieved preferences:", preferences);
 
-		// 3. Get and Summarize Current Page Content
+		// 3. Get Current Page Content
 		pageData = await getPageContentFromActiveTab();
-		finalResults.pageSummary = await generateShortSummary(pageData.content);
 
-		// 4. Fetch and Process External Data (if any preference is enabled)
+		// 4. Generate AI Summary of Current Page
+		finalResults.pageSummary = await generateAiText(
+			pageData.content,
+			"page summary"
+		);
+
+		// 5. Fetch External Links (if needed)
 		const needsExternalData =
 			preferences.scholarships ||
 			preferences.reviews ||
 			preferences.location ||
 			preferences.appTips;
+		let fetchedLinks = {
+			scholarshipLinks: [],
+			reviewLinks: [],
+			locationLinks: [],
+			appTipsLinks: [],
+		}; // Default empty links
+
 		if (needsExternalData) {
-			// Extract uniName
+			// Extract uniName from URL
 			const url = new URL(pageData.url);
-			// Basic cleaning for uniName
 			let uniName = url.hostname
 				.replace(/^(www\.|ww2\.)/i, "")
 				.split(".")
 				.slice(0, -1)
 				.join(".");
+			// Basic cleaning
 			uniName = uniName.replace(/\.(com|org|net|info|biz)$/i, "");
 			uniName = uniName.replace(/\.(edu|ac)\.[a-z]{2}$/i, "");
 			uniName = uniName.replace(/\.(edu|ac)$/i, "");
@@ -355,25 +280,41 @@ async function handleFullAnalysis(sendResponse) {
 				.join(" ");
 			console.log(`Background (Main): Using uniName: ${uniName}`);
 
-			const rawExternalText = await fetchExternalData(uniName, preferences);
-			// Process snippets (summarize + personalize)
-			const processedExternal = await processExternalSnippets(
-				rawExternalText,
-				uniName,
-				preferences
-			);
-			// Merge processed results into finalResults
-			finalResults = { ...finalResults, ...processedExternal };
+			// Call Firebase function to get links
+			fetchedLinks = await fetchExternalLinks(uniName, preferences);
+
+			// Store the fetched links directly in finalResults
+			finalResults.scholarshipLinks = fetchedLinks.scholarshipLinks;
+			finalResults.reviewLinks = fetchedLinks.reviewLinks;
+			finalResults.locationLinks = fetchedLinks.locationLinks;
+			// Note: We don't store appTipsLinks directly anymore, we generate tips instead.
 		} else {
 			console.log(
-				"Background (Main): Skipping external data fetch based on preferences."
+				"Background (Main): Skipping external link fetch based on preferences."
 			);
 		}
 
-		// 5. Save all results and open the results tab
+		// 6. Generate Application Tips using AI (based on page summary)
+		// Only generate if the preference is on OR if links were found (optional refinement)
+		if (preferences.appTips) {
+			// Check preference
+			const tipsPrompt = `Based on the following summary of a university program page, generate a few helpful application tips or key admission points a prospective student should consider. Be concise and use bullet points if appropriate:\n\n${finalResults.pageSummary}`;
+			finalResults.generatedAppTips = await generateAiText(
+				tipsPrompt,
+				"application tips"
+			);
+		} else {
+			console.log(
+				"Background (Main): Skipping application tip generation based on preferences."
+			);
+			finalResults.generatedAppTips =
+				"[Application tip generation disabled in preferences.]";
+		}
+
+		// 7. Save all generated/fetched results and open the results tab
 		await saveAndOpenResults(finalResults);
 
-		// 6. Send success response back to popup
+		// 8. Send success response back to popup
 		sendResponse({
 			success: true,
 			message: "Analysis complete! Check the new tab.",

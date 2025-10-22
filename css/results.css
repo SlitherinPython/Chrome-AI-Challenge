@@ -8,23 +8,33 @@ body {
   margin: 1rem auto; /* Center the content */
 }
 
-/* Style for each result section */
+/* Style for AI generated text sections */
 .result-section {
-    white-space: pre-wrap; /* Respect newlines from the AI/storage */
+    white-space: pre-wrap; /* Respect newlines */
     border: 1px solid #eee;
-    padding: 15px; /* Slightly more padding */
-    margin-bottom: 25px; /* More space between sections */
+    padding: 15px;
+    margin-bottom: 10px; /* Reduced margin slightly */
     background-color: #f9f9f9;
-    border-radius: 4px; /* Slightly rounded corners */
+    border-radius: 4px;
 }
 
-/* Optional: Different background for personalized sections */
-#reviewSummary-content, #locationSummary-content {
-    background-color: #e8f7fa; /* Light blue background */
-    border-color: #d1ecf1;
+/* Make lists look nice */
+.list-group {
+    margin-bottom: 25px; /* Space after lists */
 }
+.list-group-item a {
+    text-decoration: none; /* Cleaner links */
+}
+.list-group-item a:hover {
+    text-decoration: underline;
+}
+
 
 h4 {
-    border-bottom: 2px solid #0d6efd; /* Add underline to headings */
+    border-bottom: 2px solid #0d6efd; /* Underline headings */
     padding-bottom: 5px;
+    margin-top: 2rem; /* Add space above headings */
+}
+h4:first-of-type {
+    margin-top: 0.5rem; /* Less space above the very first heading */
 }
