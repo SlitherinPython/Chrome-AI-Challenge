@@ -83,10 +83,17 @@ If you want to run your own instance of the backend after the hackathon demo per
 
 ## 🧗 Challenges Faced & Learnings
 
-*(Keep this section as drafted previously, detailing AI setup, service worker issues, scraping reliability pivot, API security, and async flow management)*
-
+* **AI Model Setup:** Enabling the built-in AI (`LanguageModel`) was challenging. It required specific flag combinations (`BypassPerfRequirement` was key), dealing with corrupted model downloads (requiring manual deletion of component folders), diagnosing GPU block errors (necessitating driver updates), and understanding the component download lifecycle (`chrome://components`, `chrome://on-device-internals`). The namespace change from `chrome.ai.LanguageModel` to global `LanguageModel` in newer Chrome versions also required adaptation.
+* **Service Worker Lifecycle:** The non-persistent nature of service workers caused initial "message channel closed" errors due to long-running asynchronous tasks (multiple AI calls, external fetches). Refactoring the communication pattern to a "fire-and-forget" model from the popup resolved this. The initial startup delay remains an inherent aspect.
+* **Scraping Reliability:** Initial attempts to scrape external link content directly from the Firebase function proved unreliable due to varying website structures, anti-scraping measures, and non-HTML content (PDFs). Pivoting to fetch only link titles/URLs significantly improved speed and robustness.
+* **API Key Security:** Implementing the hybrid model required careful separation of concerns to keep the Google API key secure within the cloud function and off the client-side code/GitHub.
+* **Asynchronous Flow:** Managing the complex asynchronous flow involving user interaction, content script messaging, multiple AI calls, external API calls (Firebase), and storage operations required careful use of `async`/`await` and robust error handling.
 ---
 
 ## ✨ Future Enhancements
 
-*(Keep this section as drafted previously: Translator API, refined personalization, uni name extraction, UI improvements, streaming responses)*
+* Implement the **Translator API** for international users.
+* Add a final **AI synthesis step** that incorporates user profile ratings more deeply, analyzing the page summary and *fetched link titles*.
+* Refine the **university name extraction** logic.
+* Improve **UI/UX** on the results pages.
+* Explore using **streaming responses** from the `LanguageModel` API for perceived performance improvements.
