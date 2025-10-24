@@ -2,28 +2,44 @@
 
 **Submission for the Google Chrome Built-in AI Challenge 2025**
 
-UniCourse Helper is a Chrome extension designed to streamline the university research process. Leveraging Chrome's built-in AI (Gemini Nano via the Prompt API) and a hybrid cloud architecture, it provides concise summaries of university program pages, finds relevant external links, generates AI-powered application tips, and helps discover universities based on user preferences.
+UniCourse Helper is a Chrome extension designed to streamline the university research process for prospective students. Leveraging Chrome's built-in AI capabilities (Gemini Nano via the Prompt API) and a hybrid cloud architecture, it provides concise **summaries of university program pages subtly tailored to user preferences**, fetches relevant external links, and generates **personalized application tips based on user profile ratings**. It also includes a discovery feature to help users find potential universities based on their desired course and location.
 
 ---
 
 ## 🔥 Key Features
 
-* **AI-Powered Page Analysis:** Instantly summarizes the current university course/program page using the on-device `LanguageModel` API, subtly tailored based on user profile settings.
-* **Targeted External Link Discovery:** Finds relevant links for Scholarships, Student Reviews, and Location Info using a Firebase Cloud Function and the Google Custom Search API.
-* **AI-Generated Application Tips:** Generates actionable application tips using the `LanguageModel` API, based on the page summary and user profile.
-* **University Discovery:** Searches for potential universities based on the user's specified course and location, employing heuristics to filter for relevant program pages.
-* **User Preference Customization:** Allows users to set discovery criteria and toggle external research features via an options page.
-* **Hybrid Architecture:** Combines on-device AI (summarization, tips) with cloud functions (secure API calls, external search).
-* **Clean Results Interface:** Presents summaries and links in an organized new browser tab.
+* **AI-Powered Page Analysis:** Instantly generates a concise summary of the current university course or program page using the on-device `LanguageModel` API. The summary subtly highlights aspects relevant to the user's self-rated **Sociable, Nature Lover, and Study Focused** profile settings.
+* **Targeted External Link Discovery:** Utilizes a Firebase Cloud Function and the Google Custom Search API to find relevant, up-to-date links (up to 5 per category) for:
+    * Scholarships & Financial Aid
+    * Student Reviews (from sources like Reddit, forums)
+    * Location Information (campus area, city life)
+* **AI-Generated Application Tips:** Generates actionable application tips using the `LanguageModel` API, contextualized by the summarized page content and **tailored based on the user's profile ratings** (Sociable, Nature, Study).
+* **University Discovery:** Searches for potential universities based on the user's specified course and location preferences, employing heuristics to filter for relevant program pages over generic results.
+* **User Preference Customization:** Allows users to specify discovery criteria (course, location), toggle external information categories, and rate their personal profile (Sociable, Nature, Study) via a dedicated options page.
+* **Hybrid Architecture:** Intelligently combines the privacy and speed benefits of on-device AI (summarization, tips generation) with the power of cloud functions (secure API key usage, external data fetching).
+* **Clean Results Interface:** Presents all generated summaries and discovered links in a clearly organized new browser tab.
 
 ---
 
 ## 🚀 Workflow
 
-1.  **Set Preferences:** Right-click extension icon -> "Options" to set course/location for discovery and toggle analysis features. Save.
-2.  **Find Universities (Optional):** Click extension icon -> "Find Universities". A new tab lists potential universities.
-3.  **Navigate & Analyze:** Go to a specific university's course list/program page. Click extension icon -> "Analyze This Page".
-4.  **View Results:** A new tab opens showing the AI page summary, relevant external links, and AI-generated application tips.
+1.  **Set Preferences:**
+    * Right-click the extension icon -> "Options".
+    * Enter your **Desired Course** and **Target Location** for discovery.
+    * Toggle **External Research Features** (Scholarships, Reviews, Location, App Tips) for page analysis.
+    * Adjust **Personal Profile** sliders (Sociable, Nature, Study) to influence AI prompt tailoring.
+    * Click "Save Preferences".
+2.  **Find Universities (Optional):**
+    * Click extension icon -> "**Find Universities**".
+    * A new tab lists potential university websites matching your course/location criteria.
+3.  **Navigate & Analyze:**
+    * Go to a specific university's course list/program page.
+    * Click extension icon -> "**Analyze This Page**".
+4.  **View Results:**
+    * A new tab opens displaying:
+        * An AI-generated summary of the current page (subtly reflecting profile ratings).
+        * Lists of relevant external links (up to 5 per category).
+        * AI-generated application tips tailored to the page content and profile ratings.
 
 ---
 
